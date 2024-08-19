@@ -9,6 +9,7 @@
     router.get("/produk/kategori/:kategoriId", Produks.getAllProdukByKategori);
     router.get('/produk/detail/:id', Produks.getDetailProdukById);
     router.get('/produk/allproduk/kategori', Produks.getAllProdukAndKategori);
+    router.get("/produk/latest/new", Produks.getLatestProduk);
 
     //Rute Post
     router.post('/produk', Produks.createProduk);

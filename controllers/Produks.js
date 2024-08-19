@@ -86,7 +86,6 @@ exports.createProduk = [
   },
 ];
 
-
 exports.getAllProdukAndKategori = async (req, res) => {
   try {
     const produks = await Produk.findAll({
@@ -173,6 +172,57 @@ exports.getAllProduk = async (req, res) => {
   }
 };
 
+exports.getLatestProduk = async (req, res) => {
+  try {
+    const latestProduks = await Produk.findAll({
+      order: [["createdAt", "DESC"]],
+      limit: 4,
+      attributes: [
+        "id",
+        "nama",
+        "harga",
+        "linkTokopedia",
+        "linkShopee",
+        "linkWhatsApp",
+        "gambar",
+        "kategoriId",
+      ],
+      include: {
+        model: Kategori,
+        attributes: ["id", "namaKategori"],
+      },
+    });
+
+    console.log("Latest Produk Query Result:", latestProduks);
+
+    if (latestProduks.length === 0) {
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
+    }
+
+    const response = latestProduks.map((produk) => {
+      const gambarArray = produk.gambar
+        ? produk.gambar.split(",").map((gambar) => baseURL + gambar.trim())
+        : [];
+
+      return {
+        id: produk.id,
+        nama: produk.nama,
+        harga: produk.harga,
+        linkTokopedia: produk.linkTokopedia,
+        linkShopee: produk.linkShopee,
+        linkWhatsApp: produk.linkWhatsApp,
+        gambar: gambarArray.length > 0 ? gambarArray : null,
+        kategori: produk.Kategori,
+      };
+    });
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error saat mengambil produk terbaru:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Mendapatkan produk berdasarkan ID
 exports.getProdukById = async (req, res) => {
   const { id } = req.params;
@@ -227,6 +277,9 @@ exports.getProdukById = async (req, res) => {
 exports.updateProduk = [
   upload.array("gambar", 5), // Maksimal 5 gambar, sesuaikan sesuai kebutuhan
   async (req, res) => {
+    console.log("Request Body:", req.body);
+    console.log("Request Files:", req.files);
+
     const { id } = req.params;
     const {
       nama,
@@ -249,25 +302,30 @@ exports.updateProduk = [
         .json({ message: "Format nomor WhatsApp tidak valid" });
     }
 
-    const gambarBaru = req.files ? req.files.map((file) => file.filename) : [];
+    const newImages = req.files ? req.files.map((file) => file.filename) : [];
 
     try {
       const produk = await Produk.findByPk(id);
       if (!produk)
         return res.status(404).json({ message: "Produk tidak ditemukan" });
 
-      // Hapus gambar lama jika ada
-      if (produk.gambar) {
+      // Jika ada gambar baru, hapus gambar lama terlebih dahulu
+      if (newImages.length > 0 && produk.gambar) {
         const oldImages = produk.gambar.split(",");
-        oldImages.forEach((img) => {
-          const oldImagePath = path.join("uploads/produks/", img);
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
+        for (const image of oldImages) {
+          const oldImagePath = path.join("uploads/produks/", image);
+          try {
+            await fs.access(oldImagePath); // Cek jika file ada
+            await fs.unlink(oldImagePath); // Hapus file secara asinkron
+          } catch (err) {
+            console.log(
+              `Failed to delete file: ${oldImagePath}. Error: ${err.message}`
+            );
           }
-        });
+        }
       }
 
-      // Update data produk
+      // Perbarui data produk
       const updatedData = {
         nama,
         warna,
@@ -275,7 +333,7 @@ exports.updateProduk = [
         dimensi,
         deskripsiProduk,
         finishing,
-        gambar: gambarBaru.join(","), // Simpan nama gambar sebagai string yang dipisahkan koma
+        gambar: newImages.length > 0 ? newImages.join(",") : produk.gambar,
         linkShopee,
         linkWhatsApp,
         linkTokopedia,
@@ -288,12 +346,13 @@ exports.updateProduk = [
       const response = {
         ...produk.toJSON(),
         gambar: updatedData.gambar
-          ? updatedData.gambar.split(",").map((img) => baseURL + img)
+          ? updatedData.gambar.split(",").map((filename) => baseURL + filename)
           : [],
       };
 
       res.status(200).json(response);
     } catch (error) {
+      console.error("Error saat memperbarui produk:", error);
       res.status(500).json({ error: error.message });
     }
   },
