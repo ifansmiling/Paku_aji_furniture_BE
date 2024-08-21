@@ -5,10 +5,10 @@ const path = require("path");
 const fs = require("fs").promises;
 const multer = require("multer");
 
-// Base URL for images
+// Base URL untuk penyimpanan gambar
 const baseURL = "/uploads/journeys/";
 
-// Configure multer for file upload
+// Konfigurasi multer untuk upload file
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/journeys/");
@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Create a new journey
+// Membuat Data Baru
 exports.createJourney = [
   upload.array("gambar", 10),
   async (req, res) => {
@@ -49,21 +49,20 @@ exports.createJourney = [
   },
 ];
 
-// Get all journeys
+// Get Semua Data
 exports.getAllJourneys = async (req, res) => {
   try {
     const journeys = await ExJourney.findAll();
 
-    // Mengurutkan perjalanan berdasarkan tanggal terbaru ke terlama
     const sortedJourneys = journeys
       .map((journey) => ({
         ...journey.toJSON(),
         gambar: journey.gambar
           ? journey.gambar.split(",").map((filename) => baseURL + filename)
           : [],
-        tanggal: new Date(journey.tanggal), // Pastikan tanggal dalam format Date
+        tanggal: new Date(journey.tanggal), 
       }))
-      .sort((a, b) => b.tanggal - a.tanggal); // Mengurutkan dalam urutan menurun
+      .sort((a, b) => b.tanggal - a.tanggal); 
 
     res.status(200).json(sortedJourneys);
   } catch (error) {
@@ -71,7 +70,7 @@ exports.getAllJourneys = async (req, res) => {
   }
 };
 
-// Get journey by ID
+// Get Data Berdasarkan ID
 exports.getJourneyById = async (req, res) => {
   const { id } = req.params;
 
@@ -93,7 +92,7 @@ exports.getJourneyById = async (req, res) => {
   }
 };
 
-// Update journey by ID
+// Update Data Baru Berdasarkan ID
 exports.updateJourney = [
   upload.array("gambar"),
   async (req, res) => {
@@ -142,7 +141,7 @@ exports.updateJourney = [
   },
 ];
 
-// Delete journey by ID
+// Menghapus Data Berdasarkan ID
 exports.deleteJourney = async (req, res) => {
   const { id } = req.params;
 
@@ -179,7 +178,7 @@ exports.deleteJourney = async (req, res) => {
   }
 };
 
-// Delete specific image
+// Delete Sepesifik untuk Gambar
 exports.deleteImage = async (req, res) => {
   const { filename } = req.params;
   const imagePath = path.join("uploads/journeys/", filename);

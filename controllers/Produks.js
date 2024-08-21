@@ -21,7 +21,7 @@ const baseURL = "/uploads/produks/";
 
 // Membuat produk baru
 exports.createProduk = [
-  upload.array("gambar"), // Pastikan ini sesuai dengan nama field di form-data
+  upload.array("gambar"), 
   async (req, res) => {
     const {
       nama,
@@ -37,14 +37,13 @@ exports.createProduk = [
       harga,
     } = req.body;
 
-    // Validasi nomor WhatsApp
     if (linkWhatsApp && !/^[0-9]{10,15}$/.test(linkWhatsApp)) {
       return res
         .status(400)
         .json({ message: "Format nomor WhatsApp tidak valid" });
     }
 
-    const gambar = req.files ? req.files.map((file) => file.filename) : []; // Mengambil nama file dari req.files
+    const gambar = req.files ? req.files.map((file) => file.filename) : []; 
 
     try {
       const kategori = await Kategori.findByPk(kategoriId);
@@ -53,7 +52,6 @@ exports.createProduk = [
 
       const cleanHarga = parseInt(harga.replace(/[^0-9]/g, ""), 10);
 
-      // Bentuk URL WhatsApp dari nomor telepon
       const whatsappURL = `https://wa.me/${linkWhatsApp}`;
 
       const newProduk = await Produk.create({
@@ -64,7 +62,7 @@ exports.createProduk = [
         dimensi,
         deskripsiProduk,
         finishing,
-        gambar: gambar.join(","), // Menggabungkan nama file menjadi string yang dipisahkan koma
+        gambar: gambar.join(","), 
         linkShopee,
         linkWhatsApp: whatsappURL,
         linkTokopedia,
@@ -76,7 +74,7 @@ exports.createProduk = [
         ...newProduk.toJSON(),
         gambar: newProduk.gambar
           ? newProduk.gambar.split(",").map((img) => baseURL + img)
-          : [], // Mengubah string menjadi array URL gambar
+          : [], 
       };
 
       res.status(201).json(response);
@@ -86,6 +84,7 @@ exports.createProduk = [
   },
 ];
 
+//Mendapatkan data semua produk dan kategori
 exports.getAllProdukAndKategori = async (req, res) => {
   try {
     const produks = await Produk.findAll({
@@ -144,7 +143,6 @@ exports.getAllProduk = async (req, res) => {
     });
 
     const response = produks.map((produk) => {
-      // Memecah string gambar menjadi array dan menambahkan baseURL ke setiap gambar
       const gambarArray = produk.gambar
         ? produk.gambar.split(",").map((gambar) => baseURL + gambar.trim())
         : [];
@@ -172,6 +170,7 @@ exports.getAllProduk = async (req, res) => {
   }
 };
 
+//Mendapatkan produk terbaru
 exports.getLatestProduk = async (req, res) => {
   try {
     const latestProduks = await Produk.findAll({
@@ -248,7 +247,7 @@ exports.getProdukById = async (req, res) => {
       include: [
         {
           model: Kategori,
-          attributes: ["id", "namaKategori"], // Mengambil id dan namaKategori dari tabel Kategori
+          attributes: ["id", "namaKategori"], 
         },
       ],
     });
@@ -257,7 +256,6 @@ exports.getProdukById = async (req, res) => {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
-    // Memecah string gambar menjadi array jika ada lebih dari satu gambar
     const gambarArray = produk.gambar
       ? produk.gambar.split(",").map((gambar) => baseURL + gambar.trim())
       : [];
@@ -275,7 +273,7 @@ exports.getProdukById = async (req, res) => {
 
 // Update produk berdasarkan ID
 exports.updateProduk = [
-  upload.array("gambar", 5), // Maksimal 5 gambar, sesuaikan sesuai kebutuhan
+  upload.array("gambar", 5),
   async (req, res) => {
     console.log("Request Body:", req.body);
     console.log("Request Files:", req.files);
@@ -295,7 +293,6 @@ exports.updateProduk = [
       harga,
     } = req.body;
 
-    // Validasi nomor WhatsApp
     if (linkWhatsApp && !/^[0-9]{10,15}$/.test(linkWhatsApp)) {
       return res
         .status(400)
@@ -309,14 +306,13 @@ exports.updateProduk = [
       if (!produk)
         return res.status(404).json({ message: "Produk tidak ditemukan" });
 
-      // Jika ada gambar baru, hapus gambar lama terlebih dahulu
       if (newImages.length > 0 && produk.gambar) {
         const oldImages = produk.gambar.split(",");
         for (const image of oldImages) {
           const oldImagePath = path.join("uploads/produks/", image);
           try {
-            await fs.access(oldImagePath); // Cek jika file ada
-            await fs.unlink(oldImagePath); // Hapus file secara asinkron
+            await fs.access(oldImagePath); 
+            await fs.unlink(oldImagePath); 
           } catch (err) {
             console.log(
               `Failed to delete file: ${oldImagePath}. Error: ${err.message}`
@@ -325,7 +321,6 @@ exports.updateProduk = [
         }
       }
 
-      // Perbarui data produk
       const updatedData = {
         nama,
         warna,
@@ -363,13 +358,11 @@ exports.getAllProdukByKategori = async (req, res) => {
   const { kategoriId } = req.params;
 
   try {
-    // Periksa apakah kategori ada
     const kategori = await Kategori.findByPk(kategoriId);
     if (!kategori) {
       return res.status(404).json({ message: "Kategori tidak ditemukan" });
     }
 
-    // Ambil semua produk berdasarkan kategoriId dan sertakan informasi kategori
     const produks = await Produk.findAll({
       where: { kategoriId: kategoriId },
       attributes: [
@@ -384,14 +377,12 @@ exports.getAllProdukByKategori = async (req, res) => {
       include: [
         {
           model: Kategori,
-          attributes: ["id", "namaKategori"], // Menggunakan namaKategori sesuai dengan model
+          attributes: ["id", "namaKategori"], 
         },
       ],
     });
 
-    // Bangun respons dengan URL gambar yang benar dan informasi kategori
     const response = produks.map((produk) => {
-      // Memecah string gambar menjadi array dan menambahkan baseURL ke setiap gambar
       const gambarArray = produk.gambar
         ? produk.gambar.split(",").map((gambar) => baseURL + gambar.trim())
         : [];
@@ -403,7 +394,7 @@ exports.getAllProdukByKategori = async (req, res) => {
         linkTokopedia: produk.linkTokopedia,
         linkShopee: produk.linkShopee,
         linkWhatsApp: produk.linkWhatsApp,
-        gambar: gambarArray.length > 0 ? gambarArray : null, // Mengirim array gambar
+        gambar: gambarArray.length > 0 ? gambarArray : null,
         kategori: produk.Kategori
           ? { id: produk.Kategori.id, nama: produk.Kategori.namaKategori }
           : null,
@@ -458,17 +449,14 @@ exports.deleteProduk = async (req, res) => {
     if (!produk)
       return res.status(404).json({ message: "Produk tidak ditemukan" });
 
-    // Jika produk memiliki gambar yang disimpan sebagai string dipisahkan oleh koma
     if (produk.gambar) {
-      // Memecah string gambar menjadi array berdasarkan koma
       const gambarArray = produk.gambar.split(",");
 
-      // Iterasi melalui setiap gambar untuk menghapusnya
       for (const gambar of gambarArray) {
         const filePath = path.join("uploads/produks/", gambar);
         try {
           console.log(`Trying to delete file: ${filePath}`);
-          await fs.unlink(filePath); // Menghapus file secara asinkron
+          await fs.unlink(filePath); 
           console.log(`File deleted: ${filePath}`);
         } catch (err) {
           console.log(
