@@ -55,7 +55,8 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: "auto",
+      secure: false,
+      maxAge: 24 * 60 * 60 * 1000, 
     },
   })
 );
@@ -68,6 +69,10 @@ app.use(
 );
 
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("Selamat datang di server Pakuaji Furniture!");
+});
 
 // Serve static files for uploads
 app.use("/uploads/categories", express.static(uploadDirCategories));
